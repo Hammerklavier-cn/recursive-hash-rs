@@ -19,6 +19,17 @@ md-5 = "0.10"
 sha1 = "0.10"
 sha2 = "0.10"
 
+# Windows does not support asm.
+[target.'cfg(all(not(target_os = "windows"), any(target_arch = "x86", target_arch = "x86_64")))'.dependencies]
+md-5 = { version = "0.10", features = ["asm"] }
+sha1 = { version = "0.10", features = ["asm"] }
+sha2 = { version = "0.10", features = ["asm"] }
+
+# md-5 asm doesn't support AArch64
+[target.'cfg(all(not(target_os = "windows"), target_arch = "aarch64"))'.dependencies]
+sha1 = { version = "0.10", features = ["asm"] }
+sha2 = { version = "0.10", features = ["asm"] }
+
 [dependencies.gtk]
 package = "gtk4"
 version = "0.11.0"
@@ -32,6 +43,5 @@ optional = true
 features = ["v1_4"]
 
 [features]
-default = ["asm"]
-asm = ["md-5/asm", "sha1/asm", "sha2/asm"]
+default = []
 gui = ["dep:gtk", "dep:adw"]
