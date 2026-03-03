@@ -12,6 +12,15 @@ md-5 = "0.10"
 sha1 = "0.10"
 sha2 = "0.10"
 
+[dependencies.gtk4]
+version = "0.11"
+optional = true
+
+[dependencies.libadwaita]
+version = "0.9"
+optional = true
+
 [features]
 default = ["asm"]
 asm = ["md-5/asm", "sha1/asm", "sha2/asm"]
+gui = ["dep:gtk4", "dep:libadwaita"]
