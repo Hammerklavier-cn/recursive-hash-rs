@@ -3,7 +3,7 @@ use sha1::Sha1;
 use sha2::{Sha256, Sha384, Sha512};
 
 pub trait Hasher {
-    fn get_hash(&self, reader: &mut dyn std::io::Read) -> String;
+    fn get_hash<T: std::io::Read>(&self, reader: &mut T) -> String;
 }
 
 pub struct Md5Hasher;
@@ -16,7 +16,7 @@ pub struct Sha512Hasher;
 const BUFFER_SIZE: usize = 4 * 1024 * 1024;
 
 impl Hasher for Md5Hasher {
-    fn get_hash(&self, reader: &mut dyn std::io::Read) -> String {
+    fn get_hash<T: std::io::Read>(&self, reader: &mut T) -> String {
         let mut hasher = Md5::new();
         let mut buffer = [0u8; BUFFER_SIZE];
         loop {
@@ -33,7 +33,7 @@ impl Hasher for Md5Hasher {
 }
 
 impl Hasher for Sha1Hasher {
-    fn get_hash(&self, reader: &mut dyn std::io::Read) -> String {
+    fn get_hash<T: std::io::Read>(&self, reader: &mut T) -> String {
         let mut hasher = Sha1::new();
         let mut buffer = [0u8; BUFFER_SIZE];
         loop {
@@ -50,7 +50,7 @@ impl Hasher for Sha1Hasher {
 }
 
 impl Hasher for Sha256Hasher {
-    fn get_hash(&self, reader: &mut dyn std::io::Read) -> String {
+    fn get_hash<T: std::io::Read>(&self, reader: &mut T) -> String {
         let mut hasher = Sha256::new();
         let mut buffer = [0u8; BUFFER_SIZE];
         loop {
@@ -67,7 +67,7 @@ impl Hasher for Sha256Hasher {
 }
 
 impl Hasher for Sha384Hasher {
-    fn get_hash(&self, reader: &mut dyn std::io::Read) -> String {
+    fn get_hash<T: std::io::Read>(&self, reader: &mut T) -> String {
         let mut hasher = Sha384::new();
         let mut buffer = [0u8; BUFFER_SIZE];
         loop {
@@ -84,7 +84,7 @@ impl Hasher for Sha384Hasher {
 }
 
 impl Hasher for Sha512Hasher {
-    fn get_hash(&self, reader: &mut dyn std::io::Read) -> String {
+    fn get_hash<T: std::io::Read>(&self, reader: &mut T) -> String {
         let mut hasher = Sha512::new();
         let mut buffer = [0u8; BUFFER_SIZE];
         loop {
