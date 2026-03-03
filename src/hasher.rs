@@ -2,16 +2,16 @@ use digest::Digest as _;
 use md5::Md5;
 use sha1::Sha1;
 use sha2::{Sha256, Sha384, Sha512};
-use std::io::Read;
+use std::{io::Read, ops::DerefMut};
 
 pub trait Hasher {
     type Digest: digest::Digest;
 
     fn get_hash<T: Read>(&self, reader: &mut T) -> String {
         let mut hasher = Self::Digest::new();
-        let mut buffer = [0u8; BUFFER_SIZE];
+        let mut buffer = Box::new([0u8; BUFFER_SIZE]);
         loop {
-            let bytes_read = match reader.read(&mut buffer) {
+            let bytes_read = match reader.read(buffer.deref_mut()) {
                 Ok(0) => break,
                 Ok(n) => n,
                 Err(e) => panic!("Read error: {}", e),
