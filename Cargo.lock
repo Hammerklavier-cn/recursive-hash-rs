@@ -292,6 +292,7 @@ name = "recursive-hash"
 version = "0.1.0"
 dependencies = [
  "clap",
+ "digest",
  "env_logger",
  "log",
  "md-5",
