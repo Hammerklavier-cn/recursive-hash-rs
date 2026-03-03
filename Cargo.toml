@@ -29,6 +29,7 @@ features = ["v4_14"]
 package = "libadwaita"
 version = "0.9"
 optional = true
+features = ["v1_4"]
 
 [features]
 default = ["asm"]
