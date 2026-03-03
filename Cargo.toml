@@ -3,6 +3,13 @@ name = "recursive-hash"
 version = "0.1.0"
 edition = "2024"
 
+[profile.dev]
+
+[profile.dev.package]
+md-5 = { opt-level = 2 }
+sha1 = { opt-level = 2 }
+sha2 = { opt-level = 2 }
+
 [dependencies]
 clap = { version = "=4.5.60", features = ["derive"] }
 digest = "0.10"
