@@ -6,6 +6,8 @@ use std::path::PathBuf;
 
 mod cli;
 mod finder;
+#[cfg(feature = "gui")]
+mod gtk4_gui;
 mod hasher;
 
 fn main() {
@@ -51,7 +53,7 @@ fn main() {
         }
         cli::Mode::Gui => {
             #[cfg(feature = "gui")]
-            run_gui();
+            gtk4_gui::run();
 
             #[cfg(not(feature = "gui"))]
             {
@@ -59,13 +61,6 @@ fn main() {
             }
         }
     }
-}
-
-#[cfg(feature = "gui")]
-fn run_gui() {
-    log::info!("Starting GUI mode");
-    // GUI implementation placeholder - just exit for now
-    std::process::exit(0);
 }
 
 /// Generate checksums for files and write to output file
