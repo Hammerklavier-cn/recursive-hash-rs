@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -8,16 +9,26 @@ pub fn find_files(include: Vec<impl AsRef<Path>>, exclude: Vec<impl AsRef<Path>>
         .map(|p| p.as_ref().to_path_buf())
         .collect();
 
+    let mut seen = HashSet::new();
     let mut result = Vec::new();
 
     for path in include {
         let path = path.as_ref();
         if path.is_file() {
             if !is_excluded(path, &exclude_paths) {
-                result.push(path.to_path_buf());
+                let canonical = path.canonicalize().unwrap_or_else(|_| path.to_path_buf());
+                if seen.insert(canonical.clone()) {
+                    result.push(canonical);
+                }
             }
         } else if path.is_dir() {
-            result.extend(find_files_in_dir(path, exclude_paths.clone()));
+            let files = find_files_in_dir(path, exclude_paths.clone());
+            for file in files {
+                let canonical = file.canonicalize().unwrap_or_else(|_| file.clone());
+                if seen.insert(canonical.clone()) {
+                    result.push(canonical);
+                }
+            }
         }
     }
 
