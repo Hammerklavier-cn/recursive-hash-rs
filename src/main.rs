@@ -103,9 +103,10 @@ fn generate_checksums(
                     cli::HasherMode::Sha512 => hasher::Sha512Hasher.get_hash(&mut file),
                 };
                 let relative_path = file_path
-                    .strip_prefix(".")
+                    .strip_prefix("./")
                     .unwrap_or(file_path)
-                    .to_string_lossy();
+                    .to_string_lossy()
+                    .replace('\\', "/");
                 let line = format!("{}  {}\n", hash, relative_path);
                 if let Err(e) = writer.write_all(line.as_bytes()) {
                     log::error!("Failed to write to output file: {}", e);
