@@ -3,6 +3,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 /// Find files recursively in directories (and files), excluding certain paths.
+/// Reletive paths are returned.
 pub fn find_files(include: Vec<impl AsRef<Path>>, exclude: Vec<impl AsRef<Path>>) -> Vec<PathBuf> {
     let exclude_paths: Vec<PathBuf> = exclude
         .into_iter()
@@ -26,7 +27,7 @@ pub fn find_files(include: Vec<impl AsRef<Path>>, exclude: Vec<impl AsRef<Path>>
             for file in files {
                 let canonical = file.canonicalize().unwrap_or_else(|_| file.clone());
                 if seen.insert(canonical.clone()) {
-                    result.push(canonical);
+                    result.push(file);
                 }
             }
         }
