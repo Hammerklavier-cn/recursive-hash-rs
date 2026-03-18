@@ -1,4 +1,4 @@
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use adw::subclass::prelude::ObjectSubclassIsExt;
 use gtk::glib;
@@ -19,11 +19,7 @@ impl PathObject {
 }
 
 mod imp {
-    use std::{
-        // cell::{Cell, RefCell},
-        path::PathBuf,
-        sync::OnceLock,
-    };
+    use std::{path::PathBuf, sync::OnceLock};
 
     use gtk::{
         glib::{self, Properties},

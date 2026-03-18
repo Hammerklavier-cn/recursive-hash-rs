@@ -3,12 +3,6 @@ use gtk::glib;
 
 use crate::gtk4_gui::path_object::PathObject;
 
-pub enum PathType {
-    Directory,
-    File,
-    None,
-}
-
 glib::wrapper! {
     /// This GObject represents a line in the path viewer, displaying an icon and a label.
     /// The icon is displayed on the left, indicating the path is a directory or a file.
