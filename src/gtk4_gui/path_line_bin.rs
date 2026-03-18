@@ -51,11 +51,10 @@ impl PathLineBin {
 
 mod imp {
     use adw::prelude::BinExt;
-    use adw::subclass::bin::BinImpl;
-    use adw::subclass::prelude::ObjectImpl;
-    use adw::subclass::prelude::ObjectImplExt;
-    use adw::subclass::prelude::ObjectSubclass;
-    use adw::subclass::prelude::ObjectSubclassExt;
+    use adw::subclass::{
+        bin::BinImpl,
+        prelude::{ObjectImpl, ObjectImplExt, ObjectSubclass, ObjectSubclassExt},
+    };
     use gtk::glib;
     use gtk::prelude::BoxExt;
     use gtk::subclass::widget::WidgetImpl;
