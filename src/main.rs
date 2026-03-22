@@ -1,8 +1,11 @@
 use clap::Parser;
 use hasher::Hasher;
+use std::collections::BTreeSet;
 use std::fs::File;
 use std::io::{BufRead, BufReader, BufWriter, Write};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+
+use crate::finder::normalize_path;
 
 mod cli;
 mod finder;
@@ -68,26 +71,30 @@ fn generate_checksums(
     paths: &[PathBuf],
     excludes: &[PathBuf],
     hasher_mode: &cli::HasherMode,
-    out: &str,
+    out: impl AsRef<Path>,
 ) {
     let mut success_count = 0;
     let mut error_count = 0;
 
     // Create output file
-    let output_file = match File::create(out) {
+    let output_file = match File::create(&out) {
         Ok(f) => f,
         Err(e) => {
-            log::error!("Failed to create output file '{}': {}", out, e);
+            log::error!(
+                "Failed to create output file '{}': {}",
+                out.as_ref().display(),
+                e
+            );
             std::process::exit(1);
         }
     };
     let mut writer = BufWriter::new(output_file);
 
     // Find all files to hash
-    let files = finder::find_files(paths.to_vec(), excludes.to_vec());
+    let files: BTreeSet<PathBuf> = finder::find_files(&paths, &excludes).unwrap();
     log::info!("Found {} files to hash", files.len());
 
-    for file_path in &files {
+    for file_path in files.iter() {
         match File::open(file_path) {
             Ok(mut file) => {
                 let hash = match hasher_mode {
@@ -97,17 +104,17 @@ fn generate_checksums(
                     cli::HasherMode::Sha384 => hasher::Sha384Hasher.get_hash(&mut file),
                     cli::HasherMode::Sha512 => hasher::Sha512Hasher.get_hash(&mut file),
                 };
-                let relative_path = file_path
-                    .strip_prefix(".")
-                    .unwrap_or(file_path)
-                    .to_string_lossy();
-                let line = format!("{}  {}\n", hash, relative_path);
+                let relative_path = normalize_path(
+                    file_path,
+                    out.as_ref().canonicalize().unwrap().parent().unwrap(),
+                );
+                let line = format!("{} *{}\n", hash, relative_path.display());
                 if let Err(e) = writer.write_all(line.as_bytes()) {
                     log::error!("Failed to write to output file: {}", e);
                     error_count += 1;
                 } else {
                     success_count += 1;
-                    log::debug!("Hashed: {} -> {}", relative_path, hash);
+                    log::debug!("Hashed: {} -> {}", relative_path.display(), hash);
                 }
             }
             Err(e) => {
@@ -156,7 +163,7 @@ fn audit_files(
     let mut missing_count = 0;
 
     // Find all files for reference
-    let files = finder::find_files(paths.to_vec(), excludes.to_vec());
+    let files = finder::find_files(&paths, &excludes).unwrap();
     let files_set: std::collections::HashSet<PathBuf> = files.into_iter().collect();
 
     for line in reader.lines() {
@@ -174,13 +181,21 @@ fn audit_files(
             continue;
         }
 
-        // Parse line: "hash  filename" or "hash filename"
-        let parts: Vec<&str> = line.splitn(2, "  ").collect();
+        // Parse line: "hash  filename" (text mode), "hash *filename" (binary mode), or "hash filename"
+        // GNU checksum tools use "  " for text mode and " *" for binary mode
+        let line_for_split = if line.contains(" *") {
+            // Binary mode: "hash *filename" -> replace " *" with "  " for consistent parsing
+            line.replacen(" *", "  ", 1)
+        } else {
+            line.to_string()
+        };
+
+        let parts: Vec<&str> = line_for_split.splitn(2, "  ").collect();
         let parts: Vec<&str> = if parts.len() == 2 {
             parts
         } else {
-            // Try single space separator
-            line.splitn(2, ' ').collect()
+            // Try single space separator as fallback
+            line_for_split.splitn(2, ' ').collect()
         };
 
         if parts.len() != 2 {

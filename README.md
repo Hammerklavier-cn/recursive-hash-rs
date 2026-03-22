@@ -2,6 +2,22 @@
 
 A GUI & CLI application for recursively hashing files.
 
+## Install
+
+Clone the repository to your local machine and run
+
+```bash
+RUSTFLAGS="-C target-cpu=native" cargo install --path .
+```
+
+to install the non-GUI version. (recursive-hash gui is not available)
+
+To build with GTK4 gui support, run
+
+```bash
+RUSTFLAGS="-C target-cpu=native" cargo install --path . --features gui
+```
+
 ## Usage
 
 The GUI has not been implemented yet. The command line options are as follows:
