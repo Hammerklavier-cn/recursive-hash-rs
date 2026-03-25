@@ -206,7 +206,7 @@ mod imp {
                                 }
                             }
                             Err(e) => {
-                                log::error!("Failed to select files: {}", e);
+                                log::warn!("Failed to select files: {}", e);
                             }
                         },
                     );
@@ -236,7 +236,7 @@ mod imp {
                                 }
                             }
                             Err(e) => {
-                                log::error!("Failed to select folders: {}", e);
+                                log::warn!("Failed to select folders: {}", e);
                             }
                         },
                     );
