@@ -11,8 +11,6 @@ use gtk::{
 };
 
 pub mod file_select;
-pub mod path_line_bin;
-pub mod path_object;
 
 static APP_ID: &str = "com.hammerklavier.recursive-hash";
 

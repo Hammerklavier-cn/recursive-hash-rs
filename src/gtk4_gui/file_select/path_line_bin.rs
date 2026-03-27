@@ -1,7 +1,7 @@
 use adw::subclass::prelude::ObjectSubclassIsExt;
 use gtk::glib;
 
-use crate::gtk4_gui::path_object::PathObject;
+use super::path_object::PathObject;
 
 glib::wrapper! {
     /// This GObject represents a line in the path viewer, displaying an icon and a label.

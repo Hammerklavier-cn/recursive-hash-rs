@@ -1,6 +1,9 @@
 use adw::subclass::prelude::ObjectSubclassIsExt;
 use gtk::glib;
 
+pub mod path_line_bin;
+pub mod path_object;
+
 glib::wrapper! {
     pub struct FileSelectArea(ObjectSubclass<imp::FileSelectArea>)
         @extends adw::Bin, gtk::Widget,
@@ -46,7 +49,7 @@ mod imp {
         subclass::widget::WidgetImpl,
     };
 
-    use crate::gtk4_gui::{path_line_bin::PathLineBin, path_object::PathObject};
+    use super::{path_line_bin::PathLineBin, path_object::PathObject};
 
     #[derive(Default)]
     pub struct FileSelectArea {
@@ -83,10 +86,6 @@ mod imp {
             // Title, which looks like
             // ------------`title`------------
             let title_layout = gtk::Box::new(gtk::Orientation::Horizontal, 5);
-            title_layout.set_margin_start(20);
-            title_layout.set_margin_end(20);
-            title_layout.set_margin_top(10);
-            title_layout.set_margin_bottom(5);
 
             // Left separator line
             let left_separator = gtk::Separator::new(gtk::Orientation::Horizontal);
@@ -166,8 +165,6 @@ mod imp {
 
             // List three buttons for adding files, folders, and removing paths
             let button_layout = gtk::Box::new(gtk::Orientation::Horizontal, 5);
-            button_layout.set_margin_start(20);
-            button_layout.set_margin_end(20);
             self.add_file_button.set_label("Add File");
             self.add_folder_button.set_label("Add Folder");
             self.remove_path_button.set_label("Remove Path");
