@@ -16,6 +16,10 @@ impl HashResultArea {
         glib::Object::new::<Self>()
     }
 
+    pub fn remove_all(&self) {
+        self.imp().model.remove_all();
+    }
+
     pub fn add_result(&self, path: std::path::PathBuf, hash_val: String) {
         let obj = hash_result_object::HashResultObj::new(path, hash_val);
         self.imp().model.append(&obj);
