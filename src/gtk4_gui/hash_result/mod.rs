@@ -1,0 +1,179 @@
+use adw::subclass::prelude::ObjectSubclassIsExt;
+use gtk::glib;
+
+mod hash_result_object;
+
+glib::wrapper! {
+    pub struct HashResultArea(ObjectSubclass<imp::HashResultArea>)
+        @extends adw::Bin, gtk::Widget,
+        @implements gtk::Accessible, gtk::Buildable, gtk::ConstraintTarget;
+}
+
+impl HashResultArea {
+    pub fn new() -> Self {
+        glib::Object::new::<Self>()
+    }
+
+    pub fn add_result(&self, path: std::path::PathBuf, hash_val: String) {
+        let obj = hash_result_object::HashResultObj::new(path, hash_val);
+        self.imp().model.append(&obj);
+    }
+
+    pub fn clear(&self) {
+        self.imp().model.remove_all();
+    }
+}
+
+mod imp {
+    use adw::{
+        prelude::BinExt,
+        subclass::{
+            bin::BinImpl,
+            prelude::{ObjectImpl, ObjectImplExt, ObjectSubclass, ObjectSubclassExt},
+        },
+    };
+    use gtk::{
+        ColumnViewColumn, SignalListItemFactory, gio,
+        glib::{
+            self, Properties,
+            object::{CastNone, ObjectExt},
+        },
+        prelude::{Cast, ListItemExt, WidgetExt},
+        subclass::{prelude::DerivedObjectProperties, widget::WidgetImpl},
+    };
+
+    use crate::gtk4_gui::hash_result::hash_result_object::HashResultObj;
+
+    #[derive(Properties)]
+    #[properties(wrapper_type = super::HashResultArea)]
+    pub struct HashResultArea {
+        /// Data model storing HashResultObj items
+        pub(super) model: gio::ListStore,
+        /// There are `path` and `hash` columns in the view.
+        #[property(get)]
+        pub(super) column_view: gtk::ColumnView,
+        /// ScrolledWindow wrapper for the ColumnView
+        pub(super) scrolled_window: gtk::ScrolledWindow,
+    }
+
+    impl Default for HashResultArea {
+        fn default() -> Self {
+            let model = gio::ListStore::new::<HashResultObj>();
+            let selection = gtk::NoSelection::new(Some(model.clone()));
+            let column_view = gtk::ColumnView::new(Some(selection));
+            let scrolled_window = gtk::ScrolledWindow::builder()
+                .hexpand(true)
+                .vexpand(true)
+                .min_content_height(200)
+                .min_content_width(300)
+                .child(&column_view)
+                .build();
+            Self {
+                model,
+                column_view,
+                scrolled_window,
+            }
+        }
+    }
+
+    #[glib::object_subclass]
+    impl ObjectSubclass for HashResultArea {
+        const NAME: &'static str = "HashResultArea";
+        type Type = super::HashResultArea;
+        type ParentType = adw::Bin;
+    }
+
+    #[glib::derived_properties]
+    impl ObjectImpl for HashResultArea {
+        fn constructed(&self) {
+            self.parent_constructed();
+
+            let obj = self.obj();
+
+            // Create the path column
+            let path_column = self.create_column(
+                "Path",
+                |_| {
+                    let label = gtk::Label::new(None);
+                    label.set_halign(gtk::Align::Start);
+                    // label.set_hexpand(true);
+                    // label.set_ellipsize(gtk::pango::EllipsizeMode::End);
+                    label.upcast::<gtk::Widget>()
+                },
+                |list_item, child| {
+                    let result_obj = list_item.item().and_downcast::<HashResultObj>().unwrap();
+                    let label = child.downcast_ref::<gtk::Label>().unwrap();
+                    let path = result_obj.path();
+                    label.set_text(&path.to_string_lossy());
+                },
+            );
+
+            // Create the hash column
+            let hash_column = self.create_column(
+                "Hash",
+                |_| {
+                    let label = gtk::Label::new(None);
+                    label.set_halign(gtk::Align::Start);
+                    // label.set_hexpand(true);
+                    // label.add_css_class("monospace");
+                    label.upcast::<gtk::Widget>()
+                },
+                |list_item, child| {
+                    let result_obj = list_item.item().and_downcast::<HashResultObj>().unwrap();
+                    let label = child.downcast_ref::<gtk::Label>().unwrap();
+                    label.set_text(&result_obj.hash_val());
+                },
+            );
+
+            path_column.set_fixed_width(200);
+            path_column.set_resizable(true);
+            hash_column.set_expand(true);
+            hash_column.set_resizable(true);
+
+            // Add columns to the view
+            self.column_view.append_column(&path_column);
+            self.column_view.append_column(&hash_column);
+
+            // Enable visual separators
+            self.column_view.set_show_row_separators(true);
+            self.column_view.set_show_column_separators(true);
+
+            // Set the scrolled window as the child (which contains the column_view)
+            obj.set_child(Some(&self.scrolled_window));
+        }
+    }
+
+    impl HashResultArea {
+        fn create_column<FSetup, FBind>(
+            &self,
+            title: &str,
+            setup: FSetup,
+            bind: FBind,
+        ) -> ColumnViewColumn
+        where
+            FSetup: Fn(&gtk::ListItem) -> gtk::Widget + 'static,
+            FBind: Fn(&gtk::ListItem, &gtk::Widget) + 'static,
+        {
+            let factory = SignalListItemFactory::new();
+
+            factory.connect_setup(move |_, list_item| {
+                let list_item = list_item.downcast_ref::<gtk::ListItem>().unwrap();
+                let child = setup(list_item);
+                list_item.set_child(Some(&child));
+            });
+
+            factory.connect_bind(move |_, list_item| {
+                let list_item = list_item.downcast_ref::<gtk::ListItem>().unwrap();
+                if let Some(child) = list_item.child() {
+                    bind(list_item, &child);
+                }
+            });
+
+            ColumnViewColumn::new(Some(title), Some(factory))
+        }
+    }
+
+    impl WidgetImpl for HashResultArea {}
+
+    impl BinImpl for HashResultArea {}
+}
