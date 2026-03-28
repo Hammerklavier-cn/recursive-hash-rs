@@ -22,7 +22,7 @@ impl PathLineBin {
                 imp.icon.set_icon_name(Some("folder"));
             }
             Some(false) => {
-                imp.icon.set_icon_name(Some("document"));
+                imp.icon.set_icon_name(Some("documentation"));
             }
             None => {
                 imp.icon.set_icon_name(None);
@@ -42,7 +42,7 @@ impl PathLineBin {
                 imp.icon.set_icon_name(Some("folder"));
             }
             false => {
-                imp.icon.set_icon_name(Some("document"));
+                imp.icon.set_icon_name(Some("documentation"));
             }
         }
         imp.label.set_text(path_object.path().to_str().unwrap());
