@@ -1,7 +1,8 @@
 use std::path::PathBuf;
 
-use adw::subclass::prelude::ObjectSubclassIsExt;
 use gtk::glib;
+use gtk::glib::property::PropertySet;
+use gtk::subclass::prelude::ObjectSubclassIsExt;
 
 glib::wrapper! {
     pub struct HashResultObj(ObjectSubclass<imp::HashResultObj>);
@@ -12,13 +13,13 @@ impl HashResultObj {
         let obj = glib::Object::builder::<Self>().build();
         let imp = obj.imp();
         imp.path.set(path).unwrap();
-        imp.hash_val.set(hash_val).unwrap();
+        imp.hash_val.set(hash_val);
         obj
     }
 }
 
 mod imp {
-    use std::{path::PathBuf, sync::OnceLock};
+    use std::{cell::RefCell, path::PathBuf, sync::OnceLock};
 
     use gtk::{
         glib::{self, Properties},
@@ -34,8 +35,8 @@ mod imp {
         pub path: OnceLock<PathBuf>,
 
         /// hash value of the file
-        #[property(get)]
-        pub hash_val: OnceLock<String>,
+        #[property(get, set)]
+        pub hash_val: RefCell<String>,
     }
 
     // The central trait for subclassing a GObject
