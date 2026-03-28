@@ -1,5 +1,8 @@
 use adw::subclass::prelude::ObjectSubclassIsExt;
-use gtk::glib;
+use gtk::{
+    glib::{self, object::IsA},
+    prelude::ButtonExt,
+};
 
 pub mod path_line_bin;
 pub mod path_object;
@@ -22,6 +25,16 @@ impl FileSelectArea {
         *imp.parent.borrow_mut() = parent;
 
         obj
+    }
+
+    pub fn connect_button_clicked<T>(&self, callback: impl Fn(&gtk::Button) + 'static + Clone)
+    where
+        T: IsA<gtk::Button>,
+    {
+        let imp = self.imp();
+        imp.add_file_button.connect_clicked(callback.clone());
+        imp.add_folder_button.connect_clicked(callback.clone());
+        imp.remove_path_button.connect_clicked(callback);
     }
 }
 
