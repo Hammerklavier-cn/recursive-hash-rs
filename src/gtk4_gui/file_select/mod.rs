@@ -1,8 +1,9 @@
+use std::path::PathBuf;
+
 use adw::subclass::prelude::ObjectSubclassIsExt;
-use gtk::{
-    glib::{self, object::IsA},
-    prelude::ButtonExt,
-};
+use gtk::{gio::prelude::ListModelExtManual, glib, prelude::ButtonExt};
+
+use crate::gtk4_gui::file_select::path_object::PathObject;
 
 pub mod path_line_bin;
 pub mod path_object;
@@ -27,14 +28,29 @@ impl FileSelectArea {
         obj
     }
 
-    pub fn connect_button_clicked<T>(&self, callback: impl Fn(&gtk::Button) + 'static + Clone)
-    where
-        T: IsA<gtk::Button>,
-    {
+    #[deprecated(note = "use `connect_paths_updated` instead")]
+    pub fn connect_button_clicked(&self, callback: impl Fn(&gtk::Button) + 'static + Clone) {
         let imp = self.imp();
         imp.add_file_button.connect_clicked(callback.clone());
         imp.add_folder_button.connect_clicked(callback.clone());
         imp.remove_path_button.connect_clicked(callback);
+    }
+
+    /// Connect a callback that will be called after paths are updated via file/folder selection.
+    /// This is useful when you need to react to path changes after the async file dialog completes.
+    pub fn connect_paths_updated(&self, callback: impl Fn() + 'static) {
+        let imp = self.imp();
+        *imp.paths_updated_callback.borrow_mut() = Some(Box::new(callback));
+    }
+
+    pub fn paths(&self) -> Vec<PathBuf> {
+        let imp = self.imp();
+        imp.path_list_store
+            .get()
+            .unwrap()
+            .iter::<PathObject>()
+            .map(|store| store.unwrap().path())
+            .collect::<_>()
     }
 }
 
@@ -77,6 +93,9 @@ mod imp {
         pub(super) add_file_button: gtk::Button,
         pub(super) add_folder_button: gtk::Button,
         pub(super) remove_path_button: gtk::Button,
+
+        /// Callback that gets invoked after paths are updated via file/folder selection
+        pub(super) paths_updated_callback: Rc<RefCell<Option<Box<dyn Fn() + 'static>>>>,
     }
 
     #[glib::object_subclass]
@@ -190,19 +209,25 @@ mod imp {
             layout.append(&button_layout);
 
             // callbacks
+            //
+            // 1) callback for add_file_button
             self.add_file_button.connect_clicked(glib::clone!(
                 #[weak]
                 list_store,
                 #[strong(rename_to = parent_window)]
                 self.parent,
+                #[strong(rename_to = paths_updated_callback)]
+                self.paths_updated_callback,
                 move |_| {
+                    log::debug!("Add file button clicked");
                     let parent_window = parent_window.borrow().upgrade();
                     if parent_window.is_some() {
-                        log::debug!("parent_window is Some");
+                        log::trace!("parent_window is Some");
                     } else {
-                        log::debug!("parent_window is None");
+                        log::trace!("parent_window is None");
                     }
                     let dialog = gtk::FileDialog::builder().title("Choose files...").build();
+                    let paths_updated_callback = paths_updated_callback.clone();
                     dialog.open_multiple(
                         parent_window.as_ref(),
                         None::<&gio::Cancellable>,
@@ -214,6 +239,10 @@ mod imp {
                                     let path_obj = PathObject::new(&path, false);
                                     list_store.append(&path_obj);
                                 }
+                                // Call the paths_updated callback after paths are added
+                                if let Some(callback) = paths_updated_callback.borrow().as_ref() {
+                                    callback();
+                                }
                             }
                             Err(e) => {
                                 log::warn!("Failed to select files: {}", e);
@@ -223,15 +252,19 @@ mod imp {
                 }
             ));
 
-            // callback for add_folder_button
+            // 2) callback for add_folder_button
             self.add_folder_button.connect_clicked(glib::clone!(
                 #[weak]
                 list_store,
                 #[strong(rename_to = parent_window)]
                 self.parent,
+                #[strong(rename_to = paths_updated_callback)]
+                self.paths_updated_callback,
                 move |_| {
+                    log::debug!("Add folder button clicked");
                     let parent_window = parent_window.borrow().upgrade();
                     let dialog = gtk::FileDialog::builder().title("Choose folder...").build();
+                    let paths_updated_callback = paths_updated_callback.clone();
                     dialog.select_multiple_folders(
                         parent_window.as_ref(),
                         None::<&gio::Cancellable>,
@@ -243,6 +276,10 @@ mod imp {
                                     let path: PathBuf = folder.path().unwrap();
                                     let path_obj = PathObject::new(&path, true);
                                     list_store.append(&path_obj);
+                                }
+                                // Call the paths_updated callback after paths are added
+                                if let Some(callback) = paths_updated_callback.borrow().as_ref() {
+                                    callback();
                                 }
                             }
                             Err(e) => {
@@ -257,7 +294,11 @@ mod imp {
             self.remove_path_button.connect_clicked({
                 let list_store = list_store.downgrade();
                 let selection_model = selection_model.downgrade();
+                let paths_updated_callback = self.paths_updated_callback.clone();
+
                 move |_| {
+                    log::debug!("Remove button clicked");
+
                     let list_store = list_store
                         .upgrade()
                         .expect("list_store should be available");
@@ -265,10 +306,9 @@ mod imp {
                         .upgrade()
                         .expect("selection_model should be available");
 
-                    log::debug!("Remove button clicked");
                     let selected_bitset = selection_model.selection();
                     let list_store_len = list_store.iter::<PathObject>().len();
-                    log::debug!(
+                    log::trace!(
                         "The lenth for list_store is {list_store_len}. ListItems will \
                         be checked in reverse order."
                     );
@@ -278,6 +318,9 @@ mod imp {
                             log::debug!("Removing index {i}...");
                             list_store.remove(i as u32);
                         }
+                    }
+                    if let Some(callback) = paths_updated_callback.borrow().as_ref() {
+                        callback();
                     }
                 }
             });
