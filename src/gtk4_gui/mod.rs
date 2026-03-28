@@ -1,7 +1,5 @@
-use std::path::PathBuf;
-
 use adw::{Application, ApplicationWindow, prelude::AdwApplicationWindowExt};
-use gtk::glib::VariantTy;
+use gtk::glib::{self, VariantTy};
 use gtk::{
     gio::{
         self,
@@ -143,10 +141,35 @@ fn build_ui(app: &Application) {
 
     // 4. Area for displaying all files (found or expected to be found) and hashes.
     let hash_result_area = HashResultArea::new();
-    for _ in 0..30 {
-        hash_result_area.add_result(PathBuf::from("/Path/To/File"), String::from("hash_val"));
-    }
+    // for _ in 0..30 {
+    //     hash_result_area.add_result(PathBuf::from("/Path/To/File"), String::from("hash_val"));
+    // }
     content_box.append(&hash_result_area);
+
+    // Connect paths_updated callback to execute after file selection completes
+    path_add_area.connect_paths_updated(glib::clone!(
+        #[weak]
+        path_add_area,
+        #[weak]
+        path_exclusion_area,
+        #[weak_allow_none]
+        hash_result_area,
+        move || {
+            log::debug!("Executing path_add_area path finding process after paths updated...");
+            if let Some(hash_result_area) = hash_result_area {
+                // first clear the result area before adding new results.
+                hash_result_area.remove_all();
+
+                let selected_paths = path_add_area.paths();
+                let excluded_paths = path_exclusion_area.paths();
+                let paths_to_hash =
+                    crate::finder::find_files(&selected_paths, &excluded_paths).unwrap(); // TODO: pop up a warning window.
+                for path in paths_to_hash {
+                    hash_result_area.add_result(path, String::from(""));
+                }
+            }
+        }
+    ));
 
     // Present window
     window.present();
