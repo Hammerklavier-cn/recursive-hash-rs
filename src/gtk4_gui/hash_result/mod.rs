@@ -1,5 +1,7 @@
 use adw::subclass::prelude::ObjectSubclassIsExt;
-use gtk::glib;
+use gtk::{gio::prelude::ListModelExtManual, glib};
+
+use crate::gtk4_gui::hash_result::hash_result_object::HashResultObj;
 
 mod hash_result_object;
 
@@ -17,6 +19,19 @@ impl HashResultArea {
     pub fn add_result(&self, path: std::path::PathBuf, hash_val: String) {
         let obj = hash_result_object::HashResultObj::new(path, hash_val);
         self.imp().model.append(&obj);
+    }
+
+    pub fn update_result(&self, path: std::path::PathBuf, hash_val: String) {
+        let imp = self.imp();
+        let model = &imp.model;
+
+        for res in model.iter::<HashResultObj>() {
+            let hash_res = res.unwrap();
+            if hash_res.path() == path {
+                hash_res.set_hash_val(hash_val);
+                return;
+            }
+        }
     }
 
     pub fn clear(&self) {
