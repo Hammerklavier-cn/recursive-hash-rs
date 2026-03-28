@@ -1,6 +1,7 @@
+use std::path::PathBuf;
+
 use adw::{Application, ApplicationWindow, prelude::AdwApplicationWindowExt};
 use gtk::glib::VariantTy;
-use gtk::prelude::WidgetExt;
 use gtk::{
     gio::{
         self,
@@ -10,7 +11,10 @@ use gtk::{
     prelude::{BoxExt, GtkWindowExt},
 };
 
-pub mod file_select;
+use crate::gtk4_gui::hash_result::HashResultArea;
+
+mod file_select;
+mod hash_result;
 
 static APP_ID: &str = "com.hammerklavier.recursive-hash";
 
@@ -29,7 +33,7 @@ fn build_ui(app: &Application) {
     // Create a window
     let window = ApplicationWindow::builder()
         .application(app)
-        .title("My GTK App")
+        .title("Recursive Hash")
         .build();
 
     // Create a AdwToolBarView, which is an overall container
@@ -74,6 +78,7 @@ fn build_ui(app: &Application) {
         .margin_bottom(12)
         .margin_start(12)
         .margin_end(12)
+        .spacing(6)
         .build();
     content_box.append(&input_layout);
 
@@ -88,20 +93,21 @@ fn build_ui(app: &Application) {
     input_layout.append(&path_exclusion_area);
 
     // 3. Area for specifying output file and hash algorithm.
-    let output_layout = gtk::Box::builder()
+    let options_layout = gtk::Box::builder()
         .orientation(gtk::Orientation::Horizontal)
+        .spacing(6)
         .margin_top(12)
         .margin_bottom(12)
         .margin_start(12)
         .margin_end(12)
         .build();
-    content_box.append(&output_layout);
+    content_box.append(&options_layout);
     // Output file entry
     let output_file_entry = gtk::Entry::builder()
         .hexpand(true)
         .placeholder_text("placeholder_text")
         .build();
-    output_layout.append(&output_file_entry);
+    options_layout.append(&output_file_entry);
     // Hash Algorithm SplitButton, used for selecting the hash algorithm and triggering
     // hash calculation
     let menu = gio::Menu::new();
@@ -116,9 +122,9 @@ fn build_ui(app: &Application) {
         .label("SHA-256")
         .popover(&hasher_popovermenu)
         .vexpand(false)
-        .margin_start(6)
         .width_request(100)
         .build();
+    options_layout.append(&hasher_splitbutton);
 
     // Create hash_algorithm action with string parameter
     let hash_algorithm_action = gio::SimpleAction::new("hash_algorithm", Some(VariantTy::STRING));
@@ -135,10 +141,12 @@ fn build_ui(app: &Application) {
     });
     app.add_action(&hash_algorithm_action);
 
-    output_layout.append(&hasher_splitbutton);
-
     // 4. Area for displaying all files (found or expected to be found) and hashes.
-    //
+    let hash_result_area = HashResultArea::new();
+    for _ in 0..30 {
+        hash_result_area.add_result(PathBuf::from("/Path/To/File"), String::from("hash_val"));
+    }
+    content_box.append(&hash_result_area);
 
     // Present window
     window.present();
