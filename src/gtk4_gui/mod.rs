@@ -1,5 +1,8 @@
+use std::fs::File;
+
 use adw::{Application, ApplicationWindow, prelude::AdwApplicationWindowExt};
 use gtk::glib::{self, VariantTy};
+use gtk::prelude::EditableExt;
 use gtk::{
     gio::{
         self,
@@ -10,6 +13,7 @@ use gtk::{
 };
 
 use crate::gtk4_gui::hash_result::HashResultArea;
+use crate::hasher::{Hasher, Md5Hasher, Sha256Hasher};
 
 mod file_select;
 mod hash_result;
@@ -103,6 +107,7 @@ fn build_ui(app: &Application) {
     // Output file entry
     let output_file_entry = gtk::Entry::builder()
         .hexpand(true)
+        .editable(false) // Shouldn't be manually edited.
         .placeholder_text("placeholder_text")
         .build();
     options_layout.append(&output_file_entry);
@@ -190,6 +195,46 @@ fn build_ui(app: &Application) {
                 for path in paths_to_hash {
                     hash_result_area.add_result(path, String::from(""));
                 }
+            }
+        }
+    ));
+    // Update hash results when `hasher_splitbutton` is clicked.
+    hasher_splitbutton.connect_clicked(glib::clone!(
+        #[weak]
+        path_add_area,
+        #[weak]
+        path_exclusion_area,
+        #[weak]
+        output_file_entry,
+        move |btn| {
+            log::debug!("hasher_splitbutton clicked. Hash all files and update the results.");
+
+            let hash_algorithm = btn.label().unwrap().to_string();
+
+            let selected_paths = path_add_area.paths();
+            let excluded_paths = path_exclusion_area.paths();
+            let save_path = output_file_entry.text().to_string();
+
+            let files_to_hash =
+                crate::finder::find_files(&selected_paths, &excluded_paths).unwrap();
+
+            if files_to_hash.len() != 0 {
+                match File::open(&save_path) {
+                    Ok(mut file) => {
+                        log::debug!("Hashing results will be saved in {save_path}");
+                        // TODO
+                        match hash_algorithm.to_lowercase().as_str() {
+                            "md5" | "md-5" | _ => {
+                                let checksum = Md5Hasher.get_hash(&mut file);
+                            }
+                        }
+                    }
+                    Err(_) => {
+                        log::error!("Cannot save hashing results to {save_path}");
+                    }
+                }
+            } else {
+                log::debug!("No files need hashing.");
             }
         }
     ));
