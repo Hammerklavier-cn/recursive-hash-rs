@@ -154,21 +154,19 @@ fn build_ui(app: &Application) {
         path_add_area,
         #[weak]
         path_exclusion_area,
-        #[weak_allow_none]
+        #[weak]
         hash_result_area,
         move || {
             log::debug!("Executing path_add_area path finding process after paths updated...");
-            if let Some(hash_result_area) = hash_result_area {
-                // first clear the result area before adding new results.
-                hash_result_area.remove_all();
+            // first clear the result area before adding new results.
+            hash_result_area.remove_all();
 
-                let selected_paths = path_add_area.paths();
-                let excluded_paths = path_exclusion_area.paths();
-                let paths_to_hash =
-                    crate::finder::find_files(&selected_paths, &excluded_paths).unwrap(); // TODO: pop up a warning window.
-                for path in paths_to_hash {
-                    hash_result_area.add_result(path, String::from(""));
-                }
+            let selected_paths = path_add_area.paths();
+            let excluded_paths = path_exclusion_area.paths();
+            let paths_to_hash =
+                crate::finder::find_files(&selected_paths, &excluded_paths).unwrap(); // TODO: pop up a warning window.
+            for path in paths_to_hash {
+                hash_result_area.add_result(path, String::from(""));
             }
         }
     ));
@@ -178,23 +176,21 @@ fn build_ui(app: &Application) {
         path_add_area,
         #[weak]
         path_exclusion_area,
-        #[weak_allow_none]
+        #[weak]
         hash_result_area,
         move || {
             log::debug!(
                 "Executing path_exclusion_area path finding process after paths updated..."
             );
-            if let Some(hash_result_area) = hash_result_area {
-                // first clear the result area before adding new results.
-                hash_result_area.remove_all();
+            // first clear the result area before adding new results.
+            hash_result_area.remove_all();
 
-                let selected_paths = path_add_area.paths();
-                let excluded_paths = path_exclusion_area.paths();
-                let paths_to_hash =
-                    crate::finder::find_files(&selected_paths, &excluded_paths).unwrap(); // TODO: pop up a warning window.
-                for path in paths_to_hash {
-                    hash_result_area.add_result(path, String::from(""));
-                }
+            let selected_paths = path_add_area.paths();
+            let excluded_paths = path_exclusion_area.paths();
+            let paths_to_hash =
+                crate::finder::find_files(&selected_paths, &excluded_paths).unwrap(); // TODO: pop up a warning window.
+            for path in paths_to_hash {
+                hash_result_area.add_result(path, String::from(""));
             }
         }
     ));
