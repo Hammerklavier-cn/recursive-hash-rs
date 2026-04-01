@@ -32,8 +32,19 @@ impl HashResultArea {
         for res in model.iter::<HashResultObj>() {
             let hash_res = res.unwrap();
             if hash_res.path() == path {
+                log::debug!(
+                    "Compare path: {} matches {}",
+                    path.display(),
+                    hash_res.path().display(),
+                );
                 hash_res.set_hash_val(hash_val);
-                return;
+                break;
+            } else {
+                log::trace!(
+                    "{} doesn't match {}",
+                    path.display(),
+                    hash_res.path().display(),
+                )
             }
         }
     }
@@ -119,11 +130,10 @@ mod imp {
                     // label.set_ellipsize(gtk::pango::EllipsizeMode::End);
                     label.upcast::<gtk::Widget>()
                 },
-                |list_item, child| {
+                |list_item, child_label| {
                     let result_obj = list_item.item().and_downcast::<HashResultObj>().unwrap();
-                    let label = child.downcast_ref::<gtk::Label>().unwrap();
                     let path = result_obj.path();
-                    label.set_text(&path.to_string_lossy());
+                    child_label.set_text(&path.to_string_lossy());
                 },
             );
 
@@ -137,10 +147,12 @@ mod imp {
                     // label.add_css_class("monospace");
                     label.upcast::<gtk::Widget>()
                 },
-                |list_item, child| {
+                |list_item, child_label| {
                     let result_obj = list_item.item().and_downcast::<HashResultObj>().unwrap();
-                    let label = child.downcast_ref::<gtk::Label>().unwrap();
-                    label.set_text(&result_obj.hash_val());
+                    result_obj
+                        .bind_property("hash_val", child_label, "label")
+                        .sync_create()
+                        .build();
                 },
             );
 
@@ -171,7 +183,7 @@ mod imp {
         ) -> ColumnViewColumn
         where
             FSetup: Fn(&gtk::ListItem) -> gtk::Widget + 'static,
-            FBind: Fn(&gtk::ListItem, &gtk::Widget) + 'static,
+            FBind: Fn(&gtk::ListItem, &gtk::Label) + 'static,
         {
             let factory = SignalListItemFactory::new();
 
@@ -182,10 +194,15 @@ mod imp {
             });
 
             factory.connect_bind(move |_, list_item| {
-                let list_item = list_item.downcast_ref::<gtk::ListItem>().unwrap();
-                if let Some(child) = list_item.child() {
-                    bind(list_item, &child);
-                }
+                let list_item = list_item
+                    .downcast_ref::<gtk::ListItem>()
+                    .expect("Needs to be ListItem");
+
+                let child_label = list_item
+                    .child()
+                    .and_downcast::<gtk::Label>()
+                    .expect("Needs to be Label");
+                bind(list_item, &child_label);
             });
 
             ColumnViewColumn::new(Some(title), Some(factory))
