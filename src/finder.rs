@@ -100,6 +100,11 @@ fn is_excluded(path: impl AsRef<Path>, exclude_paths: &BTreeSet<PathBuf>) -> boo
 /// Returns the relative path from `target` to `p`.
 /// Handles cases where `p` is in a parent directory of `target`.
 pub fn normalize_path(p: impl AsRef<Path>, target: impl AsRef<Path>) -> PathBuf {
+    log::trace!(
+        "Normalizing path {:?} relative to {:?}",
+        p.as_ref(),
+        target.as_ref()
+    );
     let p_canonical = p.as_ref().canonicalize().unwrap();
     let target_canonical = target.as_ref().canonicalize().unwrap();
 
