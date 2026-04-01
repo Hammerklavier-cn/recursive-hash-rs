@@ -107,6 +107,7 @@ fn build_ui(app: &Application) {
     // Output file entry
     let output_file_entry = gtk::Entry::builder()
         .hexpand(true)
+        .text("checklist.sha256") // Default output file name for debugging.
         .editable(false) // Shouldn't be manually edited.
         .placeholder_text("placeholder_text")
         .build();
