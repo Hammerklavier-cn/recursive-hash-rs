@@ -1,5 +1,6 @@
 use std::fs::File;
 use std::io::Write;
+use std::path::Path;
 
 use adw::{Application, ApplicationWindow, prelude::AdwApplicationWindowExt};
 use gtk::glib::{self, VariantTy};
@@ -13,6 +14,7 @@ use gtk::{
     prelude::{BoxExt, GtkWindowExt},
 };
 
+use crate::finder::normalize_path;
 use crate::gtk4_gui::hash_result::HashResultArea;
 use crate::hasher::{Hasher, Md5Hasher, Sha256Hasher, Sha384Hasher, Sha512Hasher};
 
@@ -108,7 +110,7 @@ fn build_ui(app: &Application) {
     // Output file entry
     let output_file_entry = gtk::Entry::builder()
         .hexpand(true)
-        .text("checklist.sha256") // Default output file name for debugging.
+        .text("./checklist.sha256") // Default output file name for debugging.
         .editable(false) // Shouldn't be manually edited.
         .placeholder_text("placeholder_text")
         .build();
@@ -239,7 +241,16 @@ fn build_ui(app: &Application) {
                             // write checksum to save file
                             save_file
                                 .write_all(
-                                    format!("{} *{}\n", checksum, read_path.display()).as_bytes(),
+                                    format!(
+                                        "{} *{}\n",
+                                        checksum,
+                                        normalize_path(
+                                            read_path,
+                                            Path::new(&save_path).parent().unwrap()
+                                        )
+                                        .display()
+                                    )
+                                    .as_bytes(),
                                 )
                                 .expect("failed to write to {save_path}");
                         }
