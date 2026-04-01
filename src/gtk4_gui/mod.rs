@@ -1,4 +1,5 @@
 use std::fs::File;
+use std::io::Write;
 
 use adw::{Application, ApplicationWindow, prelude::AdwApplicationWindowExt};
 use gtk::glib::{self, VariantTy};
@@ -13,7 +14,7 @@ use gtk::{
 };
 
 use crate::gtk4_gui::hash_result::HashResultArea;
-use crate::hasher::{Hasher, Md5Hasher, Sha256Hasher};
+use crate::hasher::{Hasher, Md5Hasher, Sha256Hasher, Sha384Hasher, Sha512Hasher};
 
 mod file_select;
 mod hash_result;
@@ -216,14 +217,31 @@ fn build_ui(app: &Application) {
                 crate::finder::find_files(&selected_paths, &excluded_paths).unwrap();
 
             if files_to_hash.len() != 0 {
-                match File::open(&save_path) {
-                    Ok(mut file) => {
+                match File::create(&save_path) {
+                    Ok(mut save_file) => {
                         log::debug!("Hashing results will be saved in {save_path}");
-                        // TODO
-                        match hash_algorithm.to_lowercase().as_str() {
-                            "md5" | "md-5" | _ => {
-                                let checksum = Md5Hasher.get_hash(&mut file);
-                            }
+                        // generate checksum
+                        for read_path in files_to_hash {
+                            let mut read_file =
+                                File::open(&read_path).expect("failed to read {read_path}");
+                            let checksum = match hash_algorithm.to_lowercase().as_str() {
+                                "md5" | "md-5" => Md5Hasher.get_hash(&mut read_file),
+                                "sha256" | "sha-256" => Sha256Hasher.get_hash(&mut read_file),
+                                "sha384" | "sha-384" => Sha384Hasher.get_hash(&mut read_file),
+                                "sha512" | "sha-512" => Sha512Hasher.get_hash(&mut read_file),
+                                _ => {
+                                    log::error!("SplitButton possesses wrong label!");
+                                    std::process::exit(1);
+                                }
+                            };
+                            // update result to `hash_result_area`
+                            hash_result_area.update_result(read_path.clone(), checksum.clone());
+                            // write checksum to save file
+                            save_file
+                                .write_all(
+                                    format!("{} *{}\n", checksum, read_path.display()).as_bytes(),
+                                )
+                                .expect("failed to write to {save_path}");
                         }
                     }
                     Err(_) => {
