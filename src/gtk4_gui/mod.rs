@@ -232,7 +232,9 @@ fn build_ui(app: &Application) {
                                 log::debug!("Hashing results will be saved in {save_path}");
 
                                 // generate checksum
+                                let mut i = 0;
                                 for read_path in files_to_hash {
+                                    i += 1;
                                     let mut read_file =
                                         File::open(&read_path).expect("failed to read {read_path}");
                                     let checksum = match hash_algorithm.to_lowercase().as_str() {
@@ -286,6 +288,7 @@ fn build_ui(app: &Application) {
                                         )
                                         .expect("failed to write to {save_path}");
                                 }
+                                log::info!("Hashed {i} files in total");
                                 sender.send_blocking(None).unwrap();
                             }
                             Err(_) => {
@@ -304,12 +307,14 @@ fn build_ui(app: &Application) {
         #[weak]
         hash_result_area,
         async move {
-            let buf_max = 100;
+            let buf_max = 25;
             let mut buf = HashMap::<PathBuf, String>::new();
+            let mut i = 0;
             while let Ok(opt) = receiver.recv().await {
                 match opt {
                     Some((path, hash)) => {
-                        log::debug!("Received hash result for {:?}", path);
+                        i += 1;
+                        log::info!("Received hash result for {:?}", path);
                         buf.insert(path, hash);
                         if buf.len() > buf_max {
                             hash_result_area.batch_update_results(&buf);
@@ -317,6 +322,8 @@ fn build_ui(app: &Application) {
                         }
                     }
                     None => {
+                        log::info!("Received {} hash results in total.", i);
+                        i = 0;
                         hash_result_area.batch_update_results(&buf);
                         buf.clear();
                     }
