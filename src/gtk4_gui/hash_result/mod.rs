@@ -1,3 +1,5 @@
+use std::{collections::HashMap, path::PathBuf};
+
 use adw::subclass::prelude::ObjectSubclassIsExt;
 use gtk::{gio::prelude::ListModelExtManual, glib};
 
@@ -45,6 +47,21 @@ impl HashResultArea {
                     path.display(),
                     hash_res.path().display(),
                 )
+            }
+        }
+    }
+
+    pub fn batch_update_results(&self, batch: &HashMap<PathBuf, String>) {
+        let imp = self.imp();
+        let model = &imp.model;
+
+        for res in model.iter::<HashResultObj>() {
+            let hash_res = res.unwrap();
+            if let Some(hash_val) = batch.get(&hash_res.path()) {
+                log::debug!("Updating hash result for {:?}", hash_res.path());
+                hash_res.set_hash_val(hash_val.clone());
+            } else {
+                log::debug!("No hash result found for {:?}", hash_res.path());
             }
         }
     }
