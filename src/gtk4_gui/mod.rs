@@ -1,6 +1,7 @@
+use std::collections::HashMap;
 use std::fs::File;
 use std::io::Write;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use adw::{Application, ApplicationWindow, prelude::AdwApplicationWindowExt};
 use gtk::glib::{self, VariantTy};
@@ -199,6 +200,9 @@ fn build_ui(app: &Application) {
         }
     ));
     // Update hash results when `hasher_splitbutton` is clicked.
+    // This process can take a long time, so we run it in a
+    // separate thread while using a channel to communicate results.
+    let (sender, receiver) = async_channel::bounded::<Option<(PathBuf, String)>>(1);
     hasher_splitbutton.connect_clicked(glib::clone!(
         #[weak]
         path_add_area,
@@ -219,48 +223,107 @@ fn build_ui(app: &Application) {
                 crate::finder::find_files(&selected_paths, &excluded_paths).unwrap();
 
             if files_to_hash.len() != 0 {
-                match File::create(&save_path) {
-                    Ok(mut save_file) => {
-                        log::debug!("Hashing results will be saved in {save_path}");
-                        // generate checksum
-                        for read_path in files_to_hash {
-                            let mut read_file =
-                                File::open(&read_path).expect("failed to read {read_path}");
-                            let checksum = match hash_algorithm.to_lowercase().as_str() {
-                                "md5" | "md-5" => Md5Hasher.get_hash(&mut read_file),
-                                "sha256" | "sha-256" => Sha256Hasher.get_hash(&mut read_file),
-                                "sha384" | "sha-384" => Sha384Hasher.get_hash(&mut read_file),
-                                "sha512" | "sha-512" => Sha512Hasher.get_hash(&mut read_file),
-                                _ => {
-                                    log::error!("SplitButton possesses wrong label!");
-                                    std::process::exit(1);
-                                }
-                            };
-                            // update result to `hash_result_area`
-                            hash_result_area.update_result(read_path.clone(), checksum.clone());
-                            // write checksum to save file
-                            save_file
-                                .write_all(
-                                    format!(
-                                        "{} *{}\n",
-                                        checksum,
-                                        normalize_path(
-                                            read_path,
-                                            Path::new(&save_path).parent().unwrap()
+                gio::spawn_blocking(glib::clone!(
+                    #[strong]
+                    sender,
+                    move || {
+                        match File::create(&save_path) {
+                            Ok(mut save_file) => {
+                                log::debug!("Hashing results will be saved in {save_path}");
+
+                                // generate checksum
+                                for read_path in files_to_hash {
+                                    let mut read_file =
+                                        File::open(&read_path).expect("failed to read {read_path}");
+                                    let checksum = match hash_algorithm.to_lowercase().as_str() {
+                                        "md5" | "md-5" => {
+                                            log::debug!("Hashing {} with MD5", read_path.display());
+                                            Md5Hasher.get_hash(&mut read_file)
+                                        }
+                                        "sha256" | "sha-256" => {
+                                            log::debug!(
+                                                "Hashing {} with SHA-256",
+                                                read_path.display()
+                                            );
+                                            Sha256Hasher.get_hash(&mut read_file)
+                                        }
+                                        "sha384" | "sha-384" => {
+                                            log::debug!(
+                                                "Hashing {} with SHA-384",
+                                                read_path.display()
+                                            );
+                                            Sha384Hasher.get_hash(&mut read_file)
+                                        }
+                                        "sha512" | "sha-512" => {
+                                            log::debug!(
+                                                "Hashing {} with SHA-512",
+                                                read_path.display()
+                                            );
+                                            Sha512Hasher.get_hash(&mut read_file)
+                                        }
+                                        _ => {
+                                            log::error!("SplitButton possesses wrong label!");
+                                            std::process::exit(1);
+                                        }
+                                    };
+                                    // Send the result to the main thread
+                                    sender
+                                        .send_blocking(Some((read_path.clone(), checksum.clone())))
+                                        .unwrap();
+                                    // write checksum to save file
+                                    save_file
+                                        .write_all(
+                                            format!(
+                                                "{} *{}\n",
+                                                checksum,
+                                                normalize_path(
+                                                    read_path,
+                                                    Path::new(&save_path).parent().unwrap()
+                                                )
+                                                .display()
+                                            )
+                                            .as_bytes(),
                                         )
-                                        .display()
-                                    )
-                                    .as_bytes(),
-                                )
-                                .expect("failed to write to {save_path}");
+                                        .expect("failed to write to {save_path}");
+                                }
+                                sender.send_blocking(None).unwrap();
+                            }
+                            Err(_) => {
+                                log::error!("Cannot save hashing results to {save_path}");
+                            }
                         }
                     }
-                    Err(_) => {
-                        log::error!("Cannot save hashing results to {save_path}");
-                    }
-                }
+                ));
             } else {
                 log::debug!("No files need hashing.");
+            }
+        }
+    ));
+
+    glib::spawn_future_local(glib::clone!(
+        #[weak]
+        hash_result_area,
+        async move {
+            let buf_max = 100;
+            let mut buf = HashMap::<PathBuf, String>::new();
+            while let Ok(opt) = receiver.recv().await {
+                match opt {
+                    Some((path, hash)) => {
+                        log::debug!("Received hash result for {:?}", path);
+                        buf.insert(path, hash);
+                        if buf.len() > buf_max {
+                            hash_result_area.batch_update_results(&buf);
+                            buf.clear();
+                        }
+                    }
+                    None => {
+                        hash_result_area.batch_update_results(&buf);
+                        buf.clear();
+                    }
+                }
+            }
+            if !buf.is_empty() {
+                hash_result_area.batch_update_results(&buf);
             }
         }
     ));
