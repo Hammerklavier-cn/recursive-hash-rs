@@ -2,6 +2,7 @@
 name = "recursive-hash"
 version = "0.1.1"
 edition = "2024"
+description = "A GUI/CLI tool for recursively hashing files in directories"
 
 [profile.dev]
 
@@ -15,28 +16,17 @@ lto = "thin"
 
 [dependencies]
 async-channel = "2.5.0"
-clap = { version = "=4.5.60", features = ["derive"] }
-digest = "0.10"
-env_logger = "0.11.9"
+clap = { version = "=4.6.0", features = ["derive"] }
+digest = "0.11"
+env_logger = "0.11.10"
 log = "0.4"
-md-5 = "0.10"
-sha1 = "0.10"
-sha2 = "0.10"
-
-# Windows does not support asm.
-[target.'cfg(all(not(target_os = "windows"), any(target_arch = "x86", target_arch = "x86_64")))'.dependencies]
-md-5 = { version = "0.10", features = ["asm"] }
-sha1 = { version = "0.10", features = ["asm"] }
-sha2 = { version = "0.10", features = ["asm"] }
-
-# md-5 asm doesn't support AArch64
-[target.'cfg(all(not(target_os = "windows"), target_arch = "aarch64"))'.dependencies]
-sha1 = { version = "0.10", features = ["asm"] }
-sha2 = { version = "0.10", features = ["asm"] }
+md-5 = "0.11"
+sha1 = "0.11"
+sha2 = "0.11"
 
 [dependencies.gtk]
 package = "gtk4"
-version = "0.11.0"
+version = "0.11"
 optional = true
 features = ["v4_14"]
 
