@@ -60,8 +60,6 @@ impl HashResultArea {
             if let Some(hash_val) = batch.get(&hash_res.path()) {
                 log::debug!("Updating hash result for {:?}", hash_res.path());
                 hash_res.set_hash_val(hash_val.clone());
-            } else {
-                log::debug!("No hash result found for {:?}", hash_res.path());
             }
         }
     }
@@ -140,36 +138,48 @@ mod imp {
             // Create the path column
             let path_column = self.create_column(
                 "Path",
-                |_| {
+                || {
                     let label = gtk::Label::new(None);
                     label.set_halign(gtk::Align::Start);
-                    // label.set_hexpand(true);
-                    // label.set_ellipsize(gtk::pango::EllipsizeMode::End);
-                    label.upcast::<gtk::Widget>()
+                    label.set_hexpand(true);
+                    label.set_ellipsize(gtk::pango::EllipsizeMode::End);
+                    label
                 },
-                |list_item, child_label| {
-                    let result_obj = list_item.item().and_downcast::<HashResultObj>().unwrap();
-                    let path = result_obj.path();
+                |hash_result_obj, child_label| {
+                    let path = hash_result_obj.path();
                     child_label.set_text(&path.to_string_lossy());
+                },
+                || {
+                    let label = gtk::Label::new(None);
+                    label.set_halign(gtk::Align::Start);
+                    label.set_hexpand(true);
+                    label.set_ellipsize(gtk::pango::EllipsizeMode::End);
+                    label
                 },
             );
 
             // Create the hash column
             let hash_column = self.create_column(
                 "Hash",
-                |_| {
+                || {
                     let label = gtk::Label::new(None);
                     label.set_halign(gtk::Align::Start);
                     // label.set_hexpand(true);
-                    // label.add_css_class("monospace");
-                    label.upcast::<gtk::Widget>()
+                    label.add_css_class("monospace");
+                    label
                 },
-                |list_item, child_label| {
-                    let result_obj = list_item.item().and_downcast::<HashResultObj>().unwrap();
-                    result_obj
+                |hash_res_obj, child_label| {
+                    hash_res_obj
                         .bind_property("hash_val", child_label, "label")
                         .sync_create()
                         .build();
+                },
+                || {
+                    let label = gtk::Label::new(None);
+                    label.set_halign(gtk::Align::Start);
+                    // label.set_hexpand(true);
+                    label.add_css_class("monospace");
+                    label
                 },
             );
 
@@ -192,21 +202,23 @@ mod imp {
     }
 
     impl HashResultArea {
-        fn create_column<FSetup, FBind>(
+        fn create_column<FSetup, FBind, FUnbind>(
             &self,
             title: &str,
             setup: FSetup,
             bind: FBind,
+            unbind: FUnbind,
         ) -> ColumnViewColumn
         where
-            FSetup: Fn(&gtk::ListItem) -> gtk::Widget + 'static,
-            FBind: Fn(&gtk::ListItem, &gtk::Label) + 'static,
+            FSetup: Fn() -> gtk::Label + 'static,
+            FBind: Fn(&HashResultObj, &gtk::Label) + 'static,
+            FUnbind: Fn() -> gtk::Label + 'static,
         {
             let factory = SignalListItemFactory::new();
 
             factory.connect_setup(move |_, list_item| {
                 let list_item = list_item.downcast_ref::<gtk::ListItem>().unwrap();
-                let child = setup(list_item);
+                let child = setup();
                 list_item.set_child(Some(&child));
             });
 
@@ -219,7 +231,20 @@ mod imp {
                     .child()
                     .and_downcast::<gtk::Label>()
                     .expect("Needs to be Label");
-                bind(list_item, &child_label);
+                let res_obj = list_item
+                    .item()
+                    .and_downcast::<HashResultObj>()
+                    .expect("Needs to be HashResultObj");
+
+                bind(&res_obj, &child_label);
+            });
+
+            factory.connect_unbind(move |_, list_item| {
+                let list_item = list_item
+                    .downcast_ref::<gtk::ListItem>()
+                    .expect("Needs to be ListItem");
+
+                list_item.set_child(Some(&unbind()));
             });
 
             ColumnViewColumn::new(Some(title), Some(factory))
