@@ -10,17 +10,30 @@ pub fn find_files(
 ) -> Result<BTreeSet<PathBuf>, io::Error> {
     let include_paths_set = include
         .into_iter()
-        .map(|p| p.as_ref().canonicalize())
+        .map(|p| {
+            p.as_ref().canonicalize().map_err(|e| {
+                log::error!("Failed to canonicalize {}: {e}", p.as_ref().display());
+                e
+            })
+        })
         .collect::<io::Result<BTreeSet<_>>>()?;
     let exclude_paths_set = exclude
         .into_iter()
-        .map(|p| p.as_ref().canonicalize())
-        .collect::<io::Result<BTreeSet<_>>>()?;
+        .map(|p| {
+            p.as_ref().canonicalize().unwrap_or_else(|e| {
+                log::warn!("Failed to canonicalize {}: {e}", p.as_ref().display());
+                p.as_ref().to_path_buf()
+            })
+        })
+        .collect::<BTreeSet<_>>();
 
     let mut found = BTreeSet::new();
 
     for path in include_paths_set {
-        let sub_result = check_path(&path, &exclude_paths_set)?;
+        let sub_result = check_path(&path, &exclude_paths_set).map_err(|e| {
+            log::error!("Failed to check {path:?}: {e}");
+            e
+        })?;
         found.extend(sub_result);
     }
 
@@ -42,7 +55,10 @@ pub fn check_path(
     let mut result = BTreeSet::new();
 
     if path.as_ref().is_file() {
-        let canonical = path.as_ref().canonicalize()?;
+        let canonical = path.as_ref().canonicalize().map_err(|e| {
+            log::error!("Failed to canonicalize {}: {e}", path.as_ref().display());
+            e
+        })?;
         if is_excluded(&path, &exclude) {
             log::trace!("Excluded file: {:?}", path.as_ref());
         } else if result.insert(canonical) {
@@ -55,11 +71,17 @@ pub fn check_path(
 
         for entry in entries {
             let entry = entry?;
-            let path = entry.path().canonicalize()?;
+            let path = entry.path().canonicalize().map_err(|e| {
+                log::error!("Failed to canonicalize {}: {e}", entry.path().display());
+                e
+            })?;
             if is_excluded(&path, exclude) {
                 log::trace!("Exclude path: {:?}", path);
             } else {
-                let sub_result = check_path(&path, exclude)?;
+                let sub_result = check_path(&path, exclude).map_err(|e| {
+                    log::error!("Failed to check {path:?}: {e}");
+                    e
+                })?;
                 result.extend(sub_result);
             }
         }
@@ -81,18 +103,8 @@ fn is_excluded(path: impl AsRef<Path>, exclude_paths: &BTreeSet<PathBuf>) -> boo
         .expect("Failed to canonicalize {path}");
 
     exclude_paths.iter().any(|exclude| {
-        // Try to get canonical path for exclude pattern
-        match exclude.canonicalize() {
-            Ok(canonical_exclude) => {
-                // Compare canonical paths
-                canonical_path.starts_with(&canonical_exclude)
-                    || canonical_path == canonical_exclude
-            }
-            Err(e) => {
-                log::warn!("Failed to canonicalize exclude path {:?}: {}", exclude, e);
-                false
-            }
-        }
+        // the exclude_paths are already canonicalized
+        canonical_path.starts_with(exclude) || canonical_path == *exclude
     })
 }
 
