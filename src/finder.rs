@@ -55,11 +55,19 @@ pub fn check_path(
     let mut result = BTreeSet::new();
 
     if path.as_ref().is_file() {
-        let canonical = path.as_ref().canonicalize().map_err(|e| {
-            log::error!("Failed to canonicalize {}: {e}", path.as_ref().display());
-            e
-        })?;
-        if is_excluded(&path, &exclude) {
+        let canonical = match path.as_ref().canonicalize() {
+            Ok(path) => path,
+            Err(e) => {
+                if path.as_ref().is_symlink() {
+                    log::warn!("Skip broken symlink: {:?}", path.as_ref());
+                    return Ok(result);
+                } else {
+                    log::error!("Failed to canonicalize {}: {e}", path.as_ref().display());
+                    return Err(e);
+                }
+            }
+        };
+        if is_excluded(&canonical, &exclude) {
             log::trace!("Excluded file: {:?}", path.as_ref());
         } else if result.insert(canonical) {
             log::trace!("Add file: {:?}", path.as_ref());
@@ -71,10 +79,18 @@ pub fn check_path(
 
         for entry in entries {
             let entry = entry?;
-            let path = entry.path().canonicalize().map_err(|e| {
-                log::error!("Failed to canonicalize {}: {e}", entry.path().display());
-                e
-            })?;
+            let path = match entry.path().canonicalize() {
+                Ok(path) => path,
+                Err(e) => {
+                    if entry.path().is_symlink() {
+                        log::warn!("Skip broken symlink: {:?}", entry.path());
+                        continue;
+                    } else {
+                        log::error!("Failed to canonicalize {}: {e}", entry.path().display());
+                        return Err(e);
+                    }
+                }
+            };
             if is_excluded(&path, exclude) {
                 log::trace!("Exclude path: {:?}", path);
             } else {
