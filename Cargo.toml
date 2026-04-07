@@ -1,6 +1,7 @@
 [package]
 name = "recursive-hash"
-version = "0.1.1"
+version = "0.1.2-rc.0"
+authors = ["Yu Xiaosong <hammerklavier@139.com>"]
 edition = "2024"
 description = "A GUI/CLI tool for recursively hashing files in directories"
 
