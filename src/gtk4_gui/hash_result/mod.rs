@@ -80,22 +80,19 @@ mod imp {
     use gtk::{
         ColumnViewColumn, SignalListItemFactory, gio,
         glib::{
-            self, Properties,
+            self,
             object::{CastNone, ObjectExt},
         },
         prelude::{Cast, ListItemExt, WidgetExt},
-        subclass::{prelude::DerivedObjectProperties, widget::WidgetImpl},
+        subclass::widget::WidgetImpl,
     };
 
     use crate::gtk4_gui::hash_result::hash_result_object::HashResultObj;
 
-    #[derive(Properties)]
-    #[properties(wrapper_type = super::HashResultArea)]
     pub struct HashResultArea {
         /// Data model storing HashResultObj items
         pub(super) model: gio::ListStore,
         /// There are `path` and `hash` columns in the view.
-        #[property(get)]
         pub(super) column_view: gtk::ColumnView,
         /// ScrolledWindow wrapper for the ColumnView
         pub(super) scrolled_window: gtk::ScrolledWindow,
@@ -128,7 +125,6 @@ mod imp {
         type ParentType = adw::Bin;
     }
 
-    #[glib::derived_properties]
     impl ObjectImpl for HashResultArea {
         fn constructed(&self) {
             self.parent_constructed();
