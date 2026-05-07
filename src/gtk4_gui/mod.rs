@@ -16,10 +16,12 @@ use gtk::{
 };
 
 use crate::finder::normalize_path;
+use crate::gtk4_gui::hash_diff::HashDiffArea;
 use crate::gtk4_gui::hash_result::HashResultArea;
 use crate::hasher::{Hasher, Md5Hasher, Sha256Hasher, Sha384Hasher, Sha512Hasher};
 
 mod file_select;
+mod hash_diff;
 mod hash_result;
 
 static APP_ID: &str = "com.hammerklavier.recursive-hash";
@@ -53,9 +55,27 @@ fn build_ui(app: &Application) {
         .title("Recursive Hash")
         .subtitle("Generate and check file hash recursively")
         .build();
-    let header = adw::HeaderBar::builder().title_widget(&title).build();
+    // Create the ViewStack first, as both ViewSwitcher and ViewSwitcherBar need it
+    let view_stack = adw::ViewStack::new();
+
+    // // Create a AdwHeaderBar with a ViewSwitcher as title widget
+    // let view_switcher = adw::ViewSwitcher::builder()
+    //     .stack(&view_stack)
+    //     .policy(adw::ViewSwitcherPolicy::Wide)
+    //     .build();
+    let header = adw::HeaderBar::builder()
+        .title_widget(&title)
+        .build();
     // Add the header bar to the toolbar view
     tool_bar_view.add_top_bar(&header);
+
+    let switcher_bar = adw::ViewSwitcherBar::builder()
+        .stack(&view_stack)
+        .reveal(true)
+        .build();
+
+    tool_bar_view.set_content(Some(&view_stack));
+    tool_bar_view.add_bottom_bar(&switcher_bar);
 
     // Create a content box, which is a vertical box for all contents
     let content_box = gtk::Box::builder()
@@ -65,7 +85,8 @@ fn build_ui(app: &Application) {
         .margin_start(12)
         .margin_end(12)
         .build();
-    tool_bar_view.set_content(Some(&content_box));
+    // tool_bar_view.set_content(Some(&content_box));
+    view_stack.add_titled(&content_box, Some("content 1"), "Check");
 
     // // This is never triggered.
     // content_box.connect_width_request_notify(|widget| {
@@ -334,6 +355,9 @@ fn build_ui(app: &Application) {
             }
         }
     ));
+
+    let hash_diff_view = HashDiffArea::new();
+    view_stack.add_titled(&hash_diff_view, Some("content 2"), "Verify");
 
     // Present window
     window.present();
