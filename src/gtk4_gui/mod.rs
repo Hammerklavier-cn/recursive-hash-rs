@@ -3,9 +3,9 @@ use std::fs::File;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
-use adw::{Application, ApplicationWindow, prelude::AdwApplicationWindowExt};
+use adw::{Application, ApplicationWindow, BreakpointCondition, prelude::AdwApplicationWindowExt};
 use gtk::glib::{self, VariantTy};
-use gtk::prelude::EditableExt;
+use gtk::prelude::{EditableExt, ToValue};
 use gtk::{
     gio::{
         self,
@@ -42,36 +42,48 @@ fn build_ui(app: &Application) {
     let window = ApplicationWindow::builder()
         .application(app)
         .title("Recursive Hash")
+        .default_height(600)
+        .default_width(800)
+        .height_request(704)
         .build();
 
     // Create a AdwToolBarView, which is an overall container
     let tool_bar_view = adw::ToolbarView::builder()
         .top_bar_style(adw::ToolbarStyle::Flat)
+        .vexpand(true)
+        .hexpand(true)
         .build();
     window.set_content(Some(&tool_bar_view));
 
-    // Create a AdwHeaderBar
+    // Create the ViewStack first, as both ViewSwitcher and ViewSwitcherBar need it
+    let view_stack = adw::ViewStack::new();
+
+    // Create the AdwWindowTitle, placed at the leftmost of the header bar
     let title = adw::WindowTitle::builder()
         .title("Recursive Hash")
         .subtitle("Generate and check file hash recursively")
         .build();
-    // Create the ViewStack first, as both ViewSwitcher and ViewSwitcherBar need it
-    let view_stack = adw::ViewStack::new();
 
-    // // Create a AdwHeaderBar with a ViewSwitcher as title widget
-    // let view_switcher = adw::ViewSwitcher::builder()
-    //     .stack(&view_stack)
-    //     .policy(adw::ViewSwitcherPolicy::Wide)
-    //     .build();
-    let header = adw::HeaderBar::builder()
-        .title_widget(&title)
+    // Create a ViewSwitcher as the centered title widget in the header bar
+    let view_switcher = adw::ViewSwitcher::builder()
+        .stack(&view_stack)
+        .policy(adw::ViewSwitcherPolicy::Wide)
         .build();
+
+    // Build the header bar: AdwWindowTitle on the left, ViewSwitcher centered
+    let header = adw::HeaderBar::builder()
+        .title_widget(&view_switcher)
+        .build();
+    header.pack_start(&title);
+
     // Add the header bar to the toolbar view
     tool_bar_view.add_top_bar(&header);
 
+    // ViewSwitcherBar at the bottom for narrow/adaptive mode.
+    // reveal=false lets AdwToolbarView automatically show/hide it based on width.
     let switcher_bar = adw::ViewSwitcherBar::builder()
         .stack(&view_stack)
-        .reveal(true)
+        .reveal(false)
         .build();
 
     tool_bar_view.set_content(Some(&view_stack));
@@ -86,18 +98,12 @@ fn build_ui(app: &Application) {
         .margin_end(12)
         .build();
     // tool_bar_view.set_content(Some(&content_box));
-    view_stack.add_titled(&content_box, Some("content 1"), "Check");
-
-    // // This is never triggered.
-    // content_box.connect_width_request_notify(|widget| {
-    //     log::info!("Connect width notify");
-    //     let width = widget.width();
-    //     if width > 200 {
-    //         widget.set_orientation(gtk::Orientation::Horizontal);
-    //     } else {
-    //         widget.set_orientation(gtk::Orientation::Vertical);
-    //     }
-    // });
+    view_stack.add_titled_with_icon(
+        &content_box,
+        Some("content 1"),
+        "Check",
+        "text-editor-symbolic",
+    );
 
     let input_layout = gtk::Box::builder()
         .orientation(gtk::Orientation::Horizontal)
@@ -108,6 +114,32 @@ fn build_ui(app: &Application) {
         .spacing(6)
         .build();
     content_box.append(&input_layout);
+
+    // Create a Breakpoint for adaptive view switching.
+    // When the window is narrow (max-width: 500sp):
+    //   - Reveal the ViewSwitcherBar at the bottom
+    //   - Remove the ViewSwitcher from the header bar (replace with empty Bin)
+    //   - Stack the input_layout vertically so FileSelectAreas don't overflow
+    // When the window is wide again, all properties revert to their original values.
+    {
+        let breakpoint_condition = BreakpointCondition::parse("max-width: 710sp")
+            .expect("Failed to parse breakpoint condition");
+        let breakpoint = adw::Breakpoint::new(breakpoint_condition);
+        breakpoint.add_setter(&switcher_bar, "reveal", Some(&true.to_value()));
+        // None leads to a default title, which is unwanted. We want it blank.
+        breakpoint.add_setter(&header, "title-widget", Some(&adw::Bin::new().to_value()));
+
+        // breakpoint.connect_unapply(f)
+        // Stack the two FileSelectAreas vertically instead of horizontally
+        breakpoint.add_setter(
+            &input_layout,
+            "orientation",
+            Some(&gtk::Orientation::Vertical.to_value()),
+        );
+        breakpoint.add_setter(&window, "height-request", Some(&810.to_value()));
+        breakpoint.add_setter(&window, "width-request", Some(&373.to_value()));
+        window.add_breakpoint(breakpoint);
+    }
 
     // 1. Area for adding file/folder paths.
     let path_add_area =
@@ -357,7 +389,12 @@ fn build_ui(app: &Application) {
     ));
 
     let hash_diff_view = HashDiffArea::new();
-    view_stack.add_titled(&hash_diff_view, Some("content 2"), "Verify");
+    view_stack.add_titled_with_icon(
+        &hash_diff_view,
+        Some("content 2"),
+        "Verify",
+        "checkbox-checked-symbolic",
+    );
 
     // Present window
     window.present();
