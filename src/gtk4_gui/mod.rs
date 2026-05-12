@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 
 use adw::{Application, ApplicationWindow, BreakpointCondition, prelude::AdwApplicationWindowExt};
 use gtk::glib::{self, VariantTy};
-use gtk::prelude::{EditableExt, ToValue};
+use gtk::prelude::{EditableExt, ToValue, WidgetExt};
 use gtk::{
     gio::{
         self,
@@ -204,6 +204,10 @@ fn build_ui(app: &Application) {
 
     // 4. Area for displaying all files (found or expected to be found) and hashes.
     let hash_result_area = HashResultArea::new();
+    hash_result_area.set_margin_top(12);
+    hash_result_area.set_margin_bottom(12);
+    hash_result_area.set_margin_start(12);
+    hash_result_area.set_margin_end(12);
     content_box.append(&hash_result_area);
 
     // Connect paths_updated callback to execute after file selection completes
