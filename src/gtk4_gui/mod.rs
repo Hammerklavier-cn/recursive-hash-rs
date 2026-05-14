@@ -90,7 +90,7 @@ fn build_ui(app: &Application) {
     tool_bar_view.add_bottom_bar(&switcher_bar);
 
     // Create a content box, which is a vertical box for all contents
-    let content_box = gtk::Box::builder()
+    let check_content_box = gtk::Box::builder()
         .orientation(gtk::Orientation::Vertical)
         .margin_top(12)
         .margin_bottom(12)
@@ -99,7 +99,7 @@ fn build_ui(app: &Application) {
         .build();
     // tool_bar_view.set_content(Some(&content_box));
     view_stack.add_titled_with_icon(
-        &content_box,
+        &check_content_box,
         Some("content 1"),
         "Check",
         "text-editor-symbolic",
@@ -113,14 +113,17 @@ fn build_ui(app: &Application) {
         .margin_end(12)
         .spacing(6)
         .build();
-    content_box.append(&input_layout);
+    check_content_box.append(&input_layout);
 
     // Create a Breakpoint for adaptive view switching.
     // When the window is narrow (max-width: 500sp):
     //   - Reveal the ViewSwitcherBar at the bottom
     //   - Remove the ViewSwitcher from the header bar (replace with empty Bin)
     //   - Stack the input_layout vertically so FileSelectAreas don't overflow
-    // When the window is wide again, all properties revert to their original values.
+    //   - Set window height-request to 812 and width-request to 373, as breakpoint
+    //     breaks AdwWindow's default size limit.
+    // When the window is wide again, all properties revert to their original values
+    // automatically.
     {
         let breakpoint_condition = BreakpointCondition::parse("max-width: 710sp")
             .expect("Failed to parse breakpoint condition");
@@ -136,7 +139,7 @@ fn build_ui(app: &Application) {
             "orientation",
             Some(&gtk::Orientation::Vertical.to_value()),
         );
-        breakpoint.add_setter(&window, "height-request", Some(&810.to_value()));
+        breakpoint.add_setter(&window, "height-request", Some(&812.to_value()));
         breakpoint.add_setter(&window, "width-request", Some(&373.to_value()));
         window.add_breakpoint(breakpoint);
     }
@@ -160,7 +163,7 @@ fn build_ui(app: &Application) {
         .margin_start(12)
         .margin_end(12)
         .build();
-    content_box.append(&options_layout);
+    check_content_box.append(&options_layout);
     // Output file entry
     let output_file_entry = gtk::Entry::builder()
         .hexpand(true)
@@ -204,7 +207,7 @@ fn build_ui(app: &Application) {
 
     // 4. Area for displaying all files (found or expected to be found) and hashes.
     let hash_result_area = HashResultArea::new();
-    content_box.append(&hash_result_area);
+    check_content_box.append(&hash_result_area);
 
     // Connect paths_updated callback to execute after file selection completes
     path_add_area.connect_paths_updated(glib::clone!(
@@ -367,7 +370,7 @@ fn build_ui(app: &Application) {
                 match opt {
                     Some((path, hash)) => {
                         i += 1;
-                        log::info!("Received hash result for {:?}", path);
+                        log::debug!("Received hash result for {:?}", path);
                         buf.insert(path, hash);
                         if buf.len() > buf_max {
                             hash_result_area.batch_update_results(&buf);
@@ -375,7 +378,7 @@ fn build_ui(app: &Application) {
                         }
                     }
                     None => {
-                        log::info!("Received {} hash results in total.", i);
+                        log::debug!("Received {} hash results in total.", i);
                         i = 0;
                         hash_result_area.batch_update_results(&buf);
                         buf.clear();
@@ -388,9 +391,19 @@ fn build_ui(app: &Application) {
         }
     ));
 
+    let verify_content_box = gtk::Box::builder()
+        .orientation(gtk::Orientation::Vertical)
+        .margin_top(12)
+        .margin_bottom(12)
+        .margin_start(12)
+        .margin_end(12)
+        .build();
+
     let hash_diff_view = HashDiffArea::new();
+    verify_content_box.append(&hash_diff_view);
+
     view_stack.add_titled_with_icon(
-        &hash_diff_view,
+        &verify_content_box,
         Some("content 2"),
         "Verify",
         "checkbox-checked-symbolic",
