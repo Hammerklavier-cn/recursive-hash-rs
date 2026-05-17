@@ -139,8 +139,8 @@ fn build_ui(app: &Application) {
             "orientation",
             Some(&gtk::Orientation::Vertical.to_value()),
         );
-        breakpoint.add_setter(&window, "height-request", Some(&812.to_value()));
-        breakpoint.add_setter(&window, "width-request", Some(&373.to_value()));
+        breakpoint.add_setter(&window, "height-request", Some(&900.to_value()));
+        breakpoint.add_setter(&window, "width-request", Some(&500.to_value()));
         window.add_breakpoint(breakpoint);
     }
 
