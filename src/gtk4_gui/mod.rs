@@ -18,7 +18,7 @@ use gtk::{
 use crate::finder::normalize_path;
 use crate::gtk4_gui::hash_diff::HashDiffArea;
 use crate::gtk4_gui::hash_result::HashResultArea;
-use crate::hasher::{Hasher, Md5Hasher, Sha256Hasher, Sha384Hasher, Sha512Hasher};
+use crate::hasher::{Hasher, Md5Hasher, Sha1Hasher, Sha256Hasher, Sha384Hasher, Sha512Hasher};
 
 mod file_select;
 mod hash_diff;
@@ -302,6 +302,13 @@ fn build_ui(app: &Application) {
                                             log::debug!("Hashing {} with MD5", read_path.display());
                                             Md5Hasher.get_hash(&mut read_file)
                                         }
+                                        "sha1" | "sha-1" => {
+                                            log::debug!(
+                                                "Hashing {} with SHA-1",
+                                                read_path.display()
+                                            );
+                                            Sha1Hasher.get_hash(&mut read_file)
+                                        }
                                         "sha256" | "sha-256" => {
                                             log::debug!(
                                                 "Hashing {} with SHA-256",
@@ -323,8 +330,8 @@ fn build_ui(app: &Application) {
                                             );
                                             Sha512Hasher.get_hash(&mut read_file)
                                         }
-                                        _ => {
-                                            log::error!("SplitButton possesses wrong label!");
+                                        e => {
+                                            log::error!("SplitButton possesses wrong label: {}", e);
                                             std::process::exit(1);
                                         }
                                     };
