@@ -19,10 +19,10 @@ impl PathLineBin {
 
         match is_directory {
             Some(true) => {
-                imp.icon.set_icon_name(Some("folder"));
+                imp.icon.set_icon_name(Some("folder-symbolic"));
             }
             Some(false) => {
-                imp.icon.set_icon_name(Some("documentation"));
+                imp.icon.set_icon_name(Some("folder-documents-symbolic"));
             }
             None => {
                 imp.icon.set_icon_name(None);
@@ -39,10 +39,10 @@ impl PathLineBin {
 
         match path_object.is_directory() {
             true => {
-                imp.icon.set_icon_name(Some("folder"));
+                imp.icon.set_icon_name(Some("folder-symbolic"));
             }
             false => {
-                imp.icon.set_icon_name(Some("documentation"));
+                imp.icon.set_icon_name(Some("folder-documents-symbolic"));
             }
         }
         imp.label.set_text(path_object.path().to_str().unwrap());
