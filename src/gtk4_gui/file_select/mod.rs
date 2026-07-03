@@ -197,9 +197,14 @@ mod imp {
 
             // List three buttons for adding files, folders, and removing paths
             let button_layout = gtk::Box::new(gtk::Orientation::Horizontal, 5);
+
             self.add_file_button.set_label("Add File");
             self.add_folder_button.set_label("Add Folder");
             self.remove_path_button.set_label("Remove Path");
+
+            self.add_file_button.set_margin_top(6);
+            self.add_folder_button.set_margin_top(6);
+            self.remove_path_button.set_margin_top(6);
             self.add_file_button.set_hexpand(true);
             self.add_folder_button.set_hexpand(true);
             self.remove_path_button.set_hexpand(true);
