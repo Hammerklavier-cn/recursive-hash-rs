@@ -33,7 +33,14 @@ impl HashResultArea {
 
         for res in model.iter::<HashResultObj>() {
             let hash_res = res.unwrap();
-            if hash_res.path() == path {
+            if hash_res.path().canonicalize().unwrap_or_else(|e| {
+                panic!(
+                    "Failed to canonicalize {}: {}",
+                    hash_res.path().display(),
+                    e
+                )
+            }) == path
+            {
                 log::debug!(
                     "Compare path: {} matches {}",
                     path.display(),
@@ -57,7 +64,13 @@ impl HashResultArea {
 
         for res in model.iter::<HashResultObj>() {
             let hash_res = res.unwrap();
-            if let Some(hash_val) = batch.get(&hash_res.path()) {
+            if let Some(hash_val) = batch.get(&hash_res.path().canonicalize().unwrap_or_else(|e| {
+                panic!(
+                    "Failed to canonicalize {}: {}",
+                    hash_res.path().display(),
+                    e
+                )
+            })) {
                 log::debug!("Updating hash result for {:?}", hash_res.path());
                 hash_res.set_hash_val(hash_val.clone());
             }
