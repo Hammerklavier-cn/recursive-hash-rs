@@ -16,7 +16,7 @@ jobs:
           echo "Hello world!"
 
       - name: Checkout
-        uses: checkout-action
+        uses: checkout-action@0.0.1
 
       # - name: Set up Rust toolchain
       #   # Install Rust toolchain completely manually instead of using actions-rs/toolchain
