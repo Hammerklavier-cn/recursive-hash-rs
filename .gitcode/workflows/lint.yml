@@ -18,12 +18,12 @@ jobs:
       - name: Checkout
         uses: checkout-action@0.0.1
 
-      # - name: Set up Rust
-      #   uses: https://codeberg.org/wackbyte/rust-toolchain@trunk
-      #   with:
-      #     toolchain: stable
-      #     profile: minimal
-      #     components: clippy, rustfmt
+      - name: Set up Rust
+        uses: https://codeberg.org/wackbyte/rust-toolchain@trunk
+        with:
+          toolchain: stable
+          profile: minimal
+          components: clippy, rustfmt
 
       # - name: Check formatting
       #   run: cargo fmt --check
