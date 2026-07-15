@@ -18,40 +18,40 @@ jobs:
       - name: Checkout
         uses: checkout-action@0.0.1
 
-      # - name: Set up Rust toolchain
-      #   # Install Rust toolchain completely manually instead of using actions-rs/toolchain
-      #   run: |
-      #     echo "Setting up Rust toolchain..."
-      #     if [ -f "$HOME/.cargo/bin/cargo" ]; then
-      #       echo "Found cargo at $HOME/.cargo/bin/cargo"
-      #     else
-      #       echo "cargo does not exist in $HOME/.cargo/bin."
-      #     fi
-      #     export PATH="$HOME/.cargo/bin:$PATH"
-      #     which cargo && echo "Found cargo at $(which cargo)" && exit 0 || echo "cargo not found. Installing Rust toolchain..."
-      #     curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable --profile minimal
-      #     if [ -f "$HOME/.cargo/bin/cargo" ]; then
-      #       echo "Found cargo at $HOME/.cargo/bin/cargo"
-      #     fi
-      #     which cargo && echo "Found cargo at $(which cargo)" && exit 0 || echo "`which` cannot find cargo"
+      - name: Set up Rust toolchain
+        # Install Rust toolchain completely manually instead of using actions-rs/toolchain
+        run: |
+          echo "Setting up Rust toolchain..."
+          if [ -f "$HOME/.cargo/bin/cargo" ]; then
+            echo "Found cargo at $HOME/.cargo/bin/cargo"
+          else
+            echo "cargo does not exist in $HOME/.cargo/bin."
+          fi
+          export PATH="$HOME/.cargo/bin:$PATH"
+          which cargo && echo "Found cargo at $(which cargo)" && exit 0 || echo "cargo not found. Installing Rust toolchain..."
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable --profile minimal
+          if [ -f "$HOME/.cargo/bin/cargo" ]; then
+            echo "Found cargo at $HOME/.cargo/bin/cargo"
+          fi
+          which cargo && echo "Found cargo at $(which cargo)" && exit 0 || echo "`which` cannot find cargo"
 
-      # - name: Add components
-      #   run: |
-      #     export PATH="$HOME/.cargo/bin:$PATH"
-      #     rustup component add clippy
-      #     rustup component add rustfmt
+      - name: Add components
+        run: |
+          export PATH="$HOME/.cargo/bin:$PATH"
+          rustup component add clippy
+          rustup component add rustfmt
 
-      # - name: Check formatting
-      #   run: |
-      #     export PATH="$HOME/.cargo/bin:$PATH"
-      #     which cargo || (echo "cargo not found" && exit 1) && cargo fmt --check
+      - name: Check formatting
+        run: |
+          export PATH="$HOME/.cargo/bin:$PATH"
+          which cargo || (echo "cargo not found" && exit 1) && cargo fmt --check
 
-      # - name: Clippy
-      #   run: |
-      #     export PATH="$HOME/.cargo/bin:$PATH"
-      #     which cargo || (echo "cargo not found" && exit 1) && cargo clippy --verbose
+      - name: Clippy
+        run: |
+          export PATH="$HOME/.cargo/bin:$PATH"
+          which cargo || (echo "cargo not found" && exit 1) && cargo clippy --verbose
 
-      # - name: Try build
-      #   run: |
-      #     export PATH="$HOME/.cargo/bin:$PATH"
-      #     which cargo || (echo "cargo not found" && exit 1) && cargo build
+      - name: Try build
+        run: |
+          export PATH="$HOME/.cargo/bin:$PATH"
+          which cargo || (echo "cargo not found" && exit 1) && cargo build
