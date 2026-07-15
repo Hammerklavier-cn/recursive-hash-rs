@@ -1,0 +1,32 @@
+name: Lint
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+
+jobs:
+  vet:
+    runs-on: ubuntu-latest
+    steps:
+      - name: echo "Hello world"
+        run: |
+          echo "Hello world!"
+
+      - name: Checkout
+        uses: checkout-action@0.0.1
+
+      # - name: Set up Rust
+      #   uses: https://codeberg.org/wackbyte/rust-toolchain@trunk
+      #   with:
+      #     toolchain: stable
+      #     profile: minimal
+      #     components: clippy, rustfmt
+
+      # - name: Check formatting
+      #   run: cargo fmt --check
+
+      # - name: Clippy
+      #   run: cargo clippy --all-targets -- -D warnings
