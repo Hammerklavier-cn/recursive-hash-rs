@@ -16,17 +16,42 @@ jobs:
           echo "Hello world!"
 
       - name: Checkout
-        uses: checkout-action@0.0.1
+        uses: checkout-action
 
-      - name: Set up Rust
-        uses: https://codeberg.org/wackbyte/rust-toolchain@trunk
-        with:
-          toolchain: stable
-          profile: minimal
-          components: clippy, rustfmt
+      # - name: Set up Rust toolchain
+      #   # Install Rust toolchain completely manually instead of using actions-rs/toolchain
+      #   run: |
+      #     echo "Setting up Rust toolchain..."
+      #     if [ -f "$HOME/.cargo/bin/cargo" ]; then
+      #       echo "Found cargo at $HOME/.cargo/bin/cargo"
+      #     else
+      #       echo "cargo does not exist in $HOME/.cargo/bin."
+      #     fi
+      #     export PATH="$HOME/.cargo/bin:$PATH"
+      #     which cargo && echo "Found cargo at $(which cargo)" && exit 0 || echo "cargo not found. Installing Rust toolchain..."
+      #     curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable --profile minimal
+      #     if [ -f "$HOME/.cargo/bin/cargo" ]; then
+      #       echo "Found cargo at $HOME/.cargo/bin/cargo"
+      #     fi
+      #     which cargo && echo "Found cargo at $(which cargo)" && exit 0 || echo "`which` cannot find cargo"
+
+      # - name: Add components
+      #   run: |
+      #     export PATH="$HOME/.cargo/bin:$PATH"
+      #     rustup component add clippy
+      #     rustup component add rustfmt
 
       # - name: Check formatting
-      #   run: cargo fmt --check
+      #   run: |
+      #     export PATH="$HOME/.cargo/bin:$PATH"
+      #     which cargo || (echo "cargo not found" && exit 1) && cargo fmt --check
 
       # - name: Clippy
-      #   run: cargo clippy --all-targets -- -D warnings
+      #   run: |
+      #     export PATH="$HOME/.cargo/bin:$PATH"
+      #     which cargo || (echo "cargo not found" && exit 1) && cargo clippy --verbose
+
+      # - name: Try build
+      #   run: |
+      #     export PATH="$HOME/.cargo/bin:$PATH"
+      #     which cargo || (echo "cargo not found" && exit 1) && cargo build
