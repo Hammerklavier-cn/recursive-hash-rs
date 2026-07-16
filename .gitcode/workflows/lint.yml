@@ -44,14 +44,17 @@ jobs:
       - name: Check formatting
         run: |
           export PATH="$HOME/.cargo/bin:$PATH"
+          cd repo_workspace
           which cargo || (echo "cargo not found" && exit 1) && cargo fmt --check
 
       - name: Clippy
         run: |
           export PATH="$HOME/.cargo/bin:$PATH"
+          cd repo_workspace
           which cargo || (echo "cargo not found" && exit 1) && cargo clippy --verbose
 
       - name: Try build
         run: |
           export PATH="$HOME/.cargo/bin:$PATH"
+          cd repo_workspace
           which cargo || (echo "cargo not found" && exit 1) && cargo build
